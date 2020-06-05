@@ -15,13 +15,16 @@ public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
 
+
 private slots:
 	void on_pushButton_M6File_clicked();
 
 	void on_pushButton_Create_clicked();
 
+    void on_tableWidget_cellChanged(int row, int column);
+
 private:
-	Ui::MainWindow *ui;
+    Ui::MainWindow *m_ui;
 };
 
 #endif // MAINWINDOW_H
