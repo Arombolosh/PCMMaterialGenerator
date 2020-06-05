@@ -257,3 +257,13 @@ void MainWindow::on_tableWidget_cellChanged(int row, int column)
     //Ist Zelleninhalt leer? nichts passiert
     //wurde Zelle beschrieben, neue Zeile einfügen
 }
+
+void MainWindow::on_pushButton_AddRow_clicked()
+{
+    m_ui->tableWidget->insertRow(m_ui->tableWidget->rowCount());
+}
+
+void MainWindow::on_pushButton_DeleteRow_clicked()
+{
+    m_ui->tableWidget->removeRow(m_ui->tableWidget->rowCount()-1);
+}
