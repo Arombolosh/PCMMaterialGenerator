@@ -2,8 +2,8 @@
 #include "ui_MainWindow.h"
 
 #include <MM_Material.h>
-#include<vector>
-#include<iostream>
+#include <vector>
+#include <iostream>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -243,7 +243,11 @@ void PCM_Material::readInputs()
 void MainWindow::on_tableWidget_cellChanged(int row, int column)
 {
 
-   if (!m_ui->tableWidget->item(row,0)->text().isEmpty() && !m_ui->tableWidget->item(row,1)->text().isEmpty() ){
+   QTableWidgetItem *itemRow0 = m_ui->tableWidget->item(row, 0);
+   QTableWidgetItem *itemRow1 = m_ui->tableWidget->item(row, 1);
+
+   if ( !(!itemRow0 || itemRow0->text().isNull()) &&
+         !(!itemRow1 || itemRow1->text().isNull())){
       m_ui->tableWidget->insertRow(row+1);
    }
    //else return;
