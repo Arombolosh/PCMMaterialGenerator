@@ -4,19 +4,23 @@
 #include <MM_Material.h>
 #include <vector>
 #include <iostream>
+#include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
     m_ui(new Ui::MainWindow)
 {
     m_ui->setupUi(this);
-    m_ui->tableWidget->setRowCount(1);
-    m_ui->tableWidget->setColumnCount(2);
+    //m_ui->tableWidget->setRowCount(1);
+    //m_ui->tableWidget->setColumnCount(2);
+
 
 
     //Set Table Header
-    QStringList headerLabels{tr("Temperature") + "[K]",tr("Enthalpy") + "[J/m³]"};
+    QStringList headerLabels{tr("Temperature") + "[K]",tr("Enthalpy") + "[kJ]"};
     m_ui->tableWidget->setHorizontalHeaderLabels(headerLabels);
+    m_ui->tableWidget->horizontalHeader()->setSectionsClickable(false);
+
 //    QTableWidgetItem *itema = new QTableWidgetItem();
 //    QTableWidgetItem *itemb = new QTableWidgetItem();
 //    itema->setText(tr("Temperature") + "[K]");
@@ -32,8 +36,16 @@ MainWindow::~MainWindow()
     delete m_ui;
 }
 
+
+// *** slots
+
 void MainWindow::on_pushButton_M6File_clicked()
 {
+    //Initalisierung des Speicherpfades durch Nutzereingabe
+    QString fpath = QFileDialog::getExistingDirectory(this, tr("Setze Ablageordner für Materialdatei"), QString());
+    if(fpath.isEmpty())
+        return;
+    m_ui->lineEdit_M6File->setText(fpath);
 
 }
 
@@ -43,7 +55,7 @@ void MainWindow::on_pushButton_Create_clicked()
     MM::Material pcm;
 
     //Read Value Input
-    pcm.m_paraStorage[MM::Material::MP_LAMBDA].set("LAMBDA",m_ui->doubleSpinBox_Lambda->value(), IBK::Unit("J/kgK"));
+    pcm.m_paraTransport[MM::Material::MP_LAMBDA].set("LAMBDA",m_ui->doubleSpinBox_Lambda->value(), IBK::Unit("W/mK"));
     pcm.m_paraStorage[MM::Material::MP_RHO].set("RHO",m_ui->doubleSpinBox_Rho->value(),IBK::Unit("kg/m3"));
     pcm.m_identification.m_name.setString(m_ui->lineEdit_Filename->text().toStdString(), "de");
     pcm.m_identification.m_producer.setString(m_ui->lineEdit_Producer->text().toStdString(), "de");
@@ -55,70 +67,33 @@ void MainWindow::on_pushButton_Create_clicked()
             MM::MaterialIdentification::WATER_TIGHT &
             MM::MaterialIdentification::VAPOR_TIGHT;
     pcm.m_identification.m_cat = MM::MaterialCategory::Miscellaneous;
-
     pcm.m_id = 1001001;
+
 
     std::vector<double> temperature;
     std::vector<double> enthalpy;
     std::vector<double> uenergy;
     double rho = pcm.m_paraStorage[MM::Material::MP_RHO].get_value(IBK::Unit("kg/m3"));
-    double ce = pcm.m_paraStorage[MM::Material::MP_CE].get_value(IBK::Unit("J/kgK"));
+    double lambda = pcm.m_paraTransport[MM::Material::MP_LAMBDA].get_value(IBK::Unit("W/mK"));
 
     //populate vectors for enthalpy and temperature from user inputs
-    for (size_t i=0; i<temperature.size();++i) {
+    for (size_t i=0; i<m_ui->tableWidget->rowCount();++i) {
         temperature.push_back(m_ui->tableWidget->item(i,0)->text().toDouble());
         enthalpy.push_back(m_ui->tableWidget->item(i,1)->text().toDouble());
     }
     //Calculate internal energy and populate energy vector
     for(size_t i=0;i<temperature.size();++i){
-        if (uenergy.size()==0) uenergy[i]=rho*ce*temperature[i];
-        else uenergy[i]=rho*(enthalpy[i]-enthalpy[i-1])*1000*(temperature[i]-temperature[i-1])+uenergy[i-1];
+        if (uenergy.empty()) uenergy[i]=rho*lambda*temperature[i];
+        else uenergy[i]=rho* (temperature[i] - temperature[i-1]) * enthalpy[i]/1000 + uenergy[i-1];
     }
     IBK::LinearSpline m_linSpl;
-    m_linSpl.setValues(temperature, enthalpy);
+    m_linSpl.setValues(temperature, uenergy);
     pcm.m_thermalStorage.m_spline[MM::ThermalStorage::F_u_T] = m_linSpl;
 
-    //main routine
 
-    //die baufunktionen aufrufen
-    //rausschreiben
+    //ToDo Rausschreiben
 
-    /*
-    IBK::UnitVector temperature;
-    IBK::UnitVector enthalpy;
-    //std::vector<double> temperature;
-    //std::vector<double> enthalpy;
-    int row;
-
-    //temperature[row] = m_ui->tableWidget->item(row,0)->text().toDouble();
-
-
-    for (size_t i=0; m_ui->tableWidget->rowCount();++i) {
-        if(temperature.size()==0){
-            //temperature.push_back(m_ui->tableWidget->item(row,0)->text().toDouble());
-            //enthalpy.push_back(m_ui->tableWidget->item(row,1)->text().toDouble());
-            temperature.m_data[row]=m_ui->tableWidget->item(row,0)->text().toDouble();
-            temperature.m_unit=IBK::Unit("K");
-            enthalpy.m_data[row]=m_ui->tableWidget->item(row,0)->text().toDouble();
-            enthalpy.m_unit=IBK::Unit("W/mK");
-        }
-        else {
-            bool isInsert = false;
-            for(size_t i=0; i< temp.size(); ++i){
-                double absTemp = specObj.first.get_value(IBK::Unit("K"));
-                if(absTemp<temp[i]){
-                    temp.insert(temp.begin()+i, absTemp);
-                    ent.insert(ent.begin()+i, specObj.second.get_value(IBK::Unit("J")));
-                    isInsert = true;
-                    break;
-                }
-            }
-            if(!isInsert){
-                temp.push_back(specObj.first.get_value(IBK::Unit("K")));
-                ent.push_back(specObj.second.get_value(IBK::Unit("J")));
-            }
-        }
-    }*/
+    pcm.write(filename);
 
 }
 
@@ -240,23 +215,23 @@ void PCM_Material::readInputs()
 
 */
 
-void MainWindow::on_tableWidget_cellChanged(int row, int column)
-{
+//void MainWindow::on_tableWidget_cellChanged(int row, int column)
+//{
 
-   QTableWidgetItem *itemRow0 = m_ui->tableWidget->item(row, 0);
-   QTableWidgetItem *itemRow1 = m_ui->tableWidget->item(row, 1);
+//   QTableWidgetItem *itemRow0 = m_ui->tableWidget->item(row, 0);
+//   QTableWidgetItem *itemRow1 = m_ui->tableWidget->item(row, 1);
 
-   if ( !(!itemRow0 || itemRow0->text().isNull()) &&
-         !(!itemRow1 || itemRow1->text().isNull())){
-      m_ui->tableWidget->insertRow(row+1);
-   }
-   //else return;
-   //else m_ui->tableWidget->removeRow(row);
+//   if ( !(!itemRow0 || itemRow0->text().isNull()) &&
+//         !(!itemRow1 || itemRow1->text().isNull())){
+//      m_ui->tableWidget->insertRow(row+1);
+//  // }
+//   //else return;
+//   //else m_ui->tableWidget->removeRow(row);
 
-    //Wenn Zelleninhalt verändert
-    //Ist Zelleninhalt leer? nichts passiert
-    //wurde Zelle beschrieben, neue Zeile einfügen
-}
+//    //Wenn Zelleninhalt verändert
+//    //Ist Zelleninhalt leer? nichts passiert
+//    //wurde Zelle beschrieben, neue Zeile einfügen
+//}
 
 void MainWindow::on_pushButton_AddRow_clicked()
 {

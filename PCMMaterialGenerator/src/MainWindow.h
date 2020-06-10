@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <IBK_Path.h>
 
 namespace Ui {
 class MainWindow;
@@ -21,7 +22,7 @@ private slots:
 
 	void on_pushButton_Create_clicked();
 
-    void on_tableWidget_cellChanged(int row, int column);
+    //void on_tableWidget_cellChanged(int row, int column);
 
     void on_pushButton_AddRow_clicked();
 
@@ -29,6 +30,7 @@ private slots:
 
 private:
     Ui::MainWindow *m_ui;
+
 };
 
 #endif // MAINWINDOW_H
