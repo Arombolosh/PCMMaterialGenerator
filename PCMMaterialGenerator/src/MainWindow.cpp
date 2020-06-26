@@ -2,9 +2,12 @@
 #include "ui_MainWindow.h"
 
 #include <MM_Material.h>
+
 #include <vector>
 #include <iostream>
+
 #include <QFileDialog>
+#include <QDateTime>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -92,6 +95,39 @@ void MainWindow::on_pushButton_Create_clicked()
 
 
     //ToDo Rausschreiben
+
+
+    /*
+D6MARLZ! 006.001
+
+[IDENTIFICATION]
+  NAME                     = DE: SP31 |EN: SP31 |IT: SP31
+  AQUISITION_ID            = -1
+  PRODUCT_ID               = DE: SP31 |EN: SP31 |IT: SP31
+  PRODUCER                 = DE: Rubitherm |EN: Rubitherm |IT: Rubitherm
+  LABORATORY               = DE: MASEA |EN: MASEA |IT: MASEA |RU: MASEA
+  DATE                     = 10.12.19
+  COLOUR                   = #ff404060
+  FLAGS                    = AIR_TIGHT
+  CATEGORY                 = MISC
+  COMMENTS                 = DE: Materialparameter für c_p;Temp...
+  DBTYPE                   = 1,7
+  HATCHING            is     = 13
+*/
+    std::stringstream ss;
+    QString x=QDateTime::currentDateTime().toString();
+    QString y=QDateTime::currentDateTimeUtc().toString();
+
+
+    ss << "D6MARLZ! 006.001" << std::endl << std::endl;
+    ss << "[IDENTIFICATION]" << std::endl;
+    ss << "NAME                     = EN: " << m_ui->lineEdit_Filename->text().toStdString() << std::endl;
+    ss << "AQUISITION_ID            = -1" << std::endl;
+    ss << "PRODUCER                 = DE: " << m_ui->lineEdit_Producer->text().toStdString() << std::endl;
+    ss << "DATE                     = " << x.toStdString() << std::endl;
+
+
+
 
     pcm.write(filename);
 
