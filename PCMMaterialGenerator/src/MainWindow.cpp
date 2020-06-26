@@ -1,42 +1,57 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
-#include <MM_Material.h>
-
 #include <vector>
 #include <iostream>
 
 #include <QFileDialog>
 #include <QDateTime>
+#include <QMessageBox>
+#include <QFile>
+#include <QDir>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
-    m_ui(new Ui::MainWindow)
+	m_ui(new Ui::MainWindow)
 {
-    m_ui->setupUi(this);
-    //m_ui->tableWidget->setRowCount(1);
-    //m_ui->tableWidget->setColumnCount(2);
+	m_ui->setupUi(this);
+	//m_ui->tableWidget->setRowCount(1);
+	//m_ui->tableWidget->setColumnCount(2);
 
 
 
-    //Set Table Header
-    QStringList headerLabels{tr("Temperature") + "[K]",tr("Enthalpy") + "[kJ]"};
-    m_ui->tableWidget->setHorizontalHeaderLabels(headerLabels);
-    m_ui->tableWidget->horizontalHeader()->setSectionsClickable(false);
+	//Set Table Header
+	QStringList headerLabels{tr("Temperature ") + "[C]",tr("Enthalpy ") + "[kJ]"};
+	m_ui->tableWidget->setHorizontalHeaderLabels(headerLabels);
+	m_ui->tableWidget->horizontalHeader()->setSectionsClickable(false);
+	m_ui->tableWidget->insertRow(0);
+	//m_ui->tableWidget->setItem(0,0,new QTableWidgetItem("0"));
+	//m_ui->tableWidget->setItem(0,1,new QTableWidgetItem("0",new QDoubleSpinBox()));
 
-//    QTableWidgetItem *itema = new QTableWidgetItem();
-//    QTableWidgetItem *itemb = new QTableWidgetItem();
-//    itema->setText(tr("Temperature") + "[K]");
-//    m_ui->tableWidget->setHorizontalHeaderItem(0,itema);
-//    itemb->setText(tr("Enthalpy") + "[J/m³]");
-//    m_ui->tableWidget->setHorizontalHeaderItem(1,itemb);
+	//QTableWidgetItem * item = new QTableWidgetItem();
+	QDoubleSpinBox* dblSpinTemp = new QDoubleSpinBox();
+	dblSpinTemp->setButtonSymbols(QAbstractSpinBox::ButtonSymbols::NoButtons);
+	dblSpinTemp->setMinimum(-273.15);
+	dblSpinTemp->setMaximum(200);
+	dblSpinTemp->setDecimals(1);
+	QDoubleSpinBox* dblSpinEnt = new QDoubleSpinBox();
+	dblSpinEnt->setButtonSymbols(QAbstractSpinBox::ButtonSymbols::NoButtons);
+	dblSpinEnt->setMinimum(0);
+	dblSpinEnt->setMaximum(2000);
+	dblSpinEnt->setDecimals(1);
 
+	m_ui->tableWidget->setCellWidget(0,0,dblSpinTemp);
+	m_ui->tableWidget->setCellWidget(0,1,dblSpinEnt);
+
+	m_ui->lineEdit_M6Path->setText("c:/temp/");
+	m_ui->lineEdit_Filename->setText("SP26");
+	m_ui->lineEdit_Producer->setText("Producer name");
 
 }
 
 MainWindow::~MainWindow()
 {
-    delete m_ui;
+	delete m_ui;
 }
 
 
@@ -44,237 +59,149 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_M6File_clicked()
 {
-    //Initalisierung des Speicherpfades durch Nutzereingabe
-    QString fpath = QFileDialog::getExistingDirectory(this, tr("Setze Ablageordner für Materialdatei"), QString());
-    if(fpath.isEmpty())
-        return;
-    m_ui->lineEdit_M6File->setText(fpath);
+	//Initalisierung des Speicherpfades durch Nutzereingabe
+	QString fpath = QFileDialog::getExistingDirectory(this, tr("Setze Ablageordner für Materialdatei"), QString());
+	if(fpath.isEmpty())
+		return;
+	m_ui->lineEdit_M6Path->setText(fpath);
 
 }
 
 void MainWindow::on_pushButton_Create_clicked()
 {
-
-    MM::Material pcm;
-
-    //Read Value Input
-    pcm.m_paraTransport[MM::Material::MP_LAMBDA].set("LAMBDA",m_ui->doubleSpinBox_Lambda->value(), IBK::Unit("W/mK"));
-    pcm.m_paraStorage[MM::Material::MP_RHO].set("RHO",m_ui->doubleSpinBox_Rho->value(),IBK::Unit("kg/m3"));
-    pcm.m_identification.m_name.setString(m_ui->lineEdit_Filename->text().toStdString(), "de");
-    pcm.m_identification.m_producer.setString(m_ui->lineEdit_Producer->text().toStdString(), "de");
-    IBK::Path filename(m_ui->lineEdit_M6File->text().toStdString() + "/" + m_ui->lineEdit_Filename->text().toStdString() + ".m6");
-
-    //Set general Material Parameters
-    pcm.m_identification.m_flags =
-            MM::MaterialIdentification::AIR_TIGHT &
-            MM::MaterialIdentification::WATER_TIGHT &
-            MM::MaterialIdentification::VAPOR_TIGHT;
-    pcm.m_identification.m_cat = MM::MaterialCategory::Miscellaneous;
-    pcm.m_id = 1001001;
+	if(m_ui->lineEdit_Filename->text().isEmpty()){
+		QMessageBox::critical(this, tr("Empty File name."), QMessageBox::tr("Empty File name."));
+		return;
+	}
+	if(m_ui->lineEdit_M6Path->text().isEmpty()){
+		QMessageBox::critical(this, tr("Empty path name."), QMessageBox::tr("Empty path name."));
+		return;
+	}
 
 
-    std::vector<double> temperature;
-    std::vector<double> enthalpy;
-    std::vector<double> uenergy;
-    double rho = pcm.m_paraStorage[MM::Material::MP_RHO].get_value(IBK::Unit("kg/m3"));
-    double lambda = pcm.m_paraTransport[MM::Material::MP_LAMBDA].get_value(IBK::Unit("W/mK"));
+	QDir dir(m_ui->lineEdit_M6Path->text());
+	if(!dir.exists()){
+		QMessageBox::critical(this, tr("Invalid m6-file path."), QMessageBox::tr("Invalid m6-file path. Only path no filename."));
+		return;
+	}
 
-    //populate vectors for enthalpy and temperature from user inputs
-    for (size_t i=0; i<m_ui->tableWidget->rowCount();++i) {
-        temperature.push_back(m_ui->tableWidget->item(i,0)->text().toDouble());
-        enthalpy.push_back(m_ui->tableWidget->item(i,1)->text().toDouble());
-    }
-    //Calculate internal energy and populate energy vector
-    for(size_t i=0;i<temperature.size();++i){
-        if (uenergy.empty()) uenergy[i]=rho*lambda*temperature[i];
-        else uenergy[i]=rho* (temperature[i] - temperature[i-1]) * enthalpy[i]/1000 + uenergy[i-1];
-    }
-    IBK::LinearSpline m_linSpl;
-    m_linSpl.setValues(temperature, uenergy);
-    pcm.m_thermalStorage.m_spline[MM::ThermalStorage::F_u_T] = m_linSpl;
+	std::vector<double> temperature;		///< temperature in °C
+	std::vector<double> enthalpy;
 
+	double rho = m_ui->doubleSpinBox_Rho->value();
+	double lambda = m_ui->doubleSpinBox_Lambda->value();
 
-    //ToDo Rausschreiben
+	//populate vectors for enthalpy and temperature from user inputs
+	for (size_t i=0; i<m_ui->tableWidget->rowCount();++i) {
+		//dynamic_cast testet ob das obj in das zielobj gewandelt werden kann.
+		temperature.push_back(static_cast<QDoubleSpinBox*>(m_ui->tableWidget->cellWidget(i,0))->value()+273.15);
+		enthalpy.push_back(static_cast<QDoubleSpinBox*>(m_ui->tableWidget->cellWidget(i,1))->value()+273.15);
+	}
 
+	if(temperature.empty()){
+		QMessageBox::critical(this, tr("Input Values invalid."), QMessageBox::tr("Please insert more table values."));
+		return;
+	}
 
-    /*
-D6MARLZ! 006.001
-
-[IDENTIFICATION]
-  NAME                     = DE: SP31 |EN: SP31 |IT: SP31
-  AQUISITION_ID            = -1
-  PRODUCT_ID               = DE: SP31 |EN: SP31 |IT: SP31
-  PRODUCER                 = DE: Rubitherm |EN: Rubitherm |IT: Rubitherm
-  LABORATORY               = DE: MASEA |EN: MASEA |IT: MASEA |RU: MASEA
-  DATE                     = 10.12.19
-  COLOUR                   = #ff404060
-  FLAGS                    = AIR_TIGHT
-  CATEGORY                 = MISC
-  COMMENTS                 = DE: Materialparameter für c_p;Temp...
-  DBTYPE                   = 1,7
-  HATCHING            is     = 13
-*/
-    std::stringstream ss;
-    QString x=QDateTime::currentDateTime().toString();
-    QString y=QDateTime::currentDateTimeUtc().toString();
+	//check if first temperature is 0 K
+	if(temperature[0] != 0){
+		temperature.insert(temperature.begin(), 0);
+		enthalpy.insert(enthalpy.begin(), 0);
+	}
+	//check if last min temperature is 100°C
+	if(temperature.back() < 100+273.15){
+		temperature.push_back(100+273.15);
+		enthalpy.push_back(enthalpy.back());
+	}
 
 
-    ss << "D6MARLZ! 006.001" << std::endl << std::endl;
-    ss << "[IDENTIFICATION]" << std::endl;
-    ss << "NAME                     = EN: " << m_ui->lineEdit_Filename->text().toStdString() << std::endl;
-    ss << "AQUISITION_ID            = -1" << std::endl;
-    ss << "PRODUCER                 = DE: " << m_ui->lineEdit_Producer->text().toStdString() << std::endl;
-    ss << "DATE                     = " << x.toStdString() << std::endl;
-
-
-
-
-    pcm.write(filename);
-
-}
-
-
-/*
-#include "PCM_Material.h"
-
-#include <MM_Material.h>
-
-void PCM_Material::createM6File(const IBK::Path &path)
-{
-	readInputs();
-
-	MM::Material mat, insulation;
-
-	mat.m_identification.m_name.setString(m_name, "de");
-	mat.m_identification.m_productId.setString("PVTool", "de");
-	mat.m_identification.m_producer.setString("Rubitherm", "de");
-	mat.m_identification.m_flags =
-			MM::MaterialIdentification::AIR_TIGHT &
-			MM::MaterialIdentification::WATER_TIGHT &
-			MM::MaterialIdentification::VAPOR_TIGHT;
-	mat.m_identification.m_cat = MM::MaterialCategory::Miscellaneous;
-
-	mat.m_id = 1001001;
-
-	IBK::Path filename(path / (m_name+"_"+IBK::val2string(mat.m_id)+".m6"));
-
-	mat.m_paraTransport[MM::Material::MP_LAMBDA].set("LAMBDA",m_para[P_Conductivity].get_value(IBK::Unit("W/mK")), IBK::Unit("W/mK"));
-	mat.m_paraStorage[MM::Material::MP_RHO].set("RHO",m_para[P_Density].get_value(IBK::Unit("kg/m3")),IBK::Unit("kg/m3"));
-	//mat.m_paraStorage[MM::Material::MP_CE].set(m_para[P_SpecHeat].get_value(IBK::Unit("J/kgK")), IBK::Unit("J/kgK"));
-
-	mat.m_thermalStorage.m_spline[MM::ThermalStorage::F_u_T] = m_linSpl;
-
-	mat.write(filename);
-
-	insulation.m_identification.m_name.setString("Insulation", "de");
-	insulation.m_identification.m_productId.setString("PVTool", "de");
-	insulation.m_identification.m_producer.setString("PVTool", "de");
-	insulation.m_identification.m_flags =
-			MM::MaterialIdentification::AIR_TIGHT &
-			MM::MaterialIdentification::WATER_TIGHT &
-			MM::MaterialIdentification::VAPOR_TIGHT;
-
-	insulation.m_identification.m_cat = MM::MaterialCategory::Insulations;
-	insulation.m_id = 1001002;
-	insulation.m_paraTransport[MM::Material::MP_LAMBDA] = IBK::Parameter("LAMBDA", 0.035, IBK::Unit("W/mK"));
-	insulation.m_paraStorage[MM::Material::MP_RHO] = IBK::Parameter("RHO", 35, IBK::Unit("kg/m3"));
-	insulation.m_paraStorage[MM::Material::MP_CE] = IBK::Parameter("CE", 1500, IBK::Unit("J/kgK"));
-
-	IBK::Path insuFilename (path / ("Insulation_" + IBK::val2string(insulation.m_id) + ".m6"));
-
-	insulation.write(insuFilename);
-}
-
-void PCM_Material::readInputs()
-{
-	m_specCapacityCurve[IBK::Parameter("Temperature",16,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 4, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",17,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 3, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",18,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 3, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",19,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 4, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",20,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 5, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",21,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 6, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",22,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 12, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",23,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 22, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",24,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 27, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",25,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 50, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",26,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 25, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",27,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 7, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",28,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 4, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",29,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 4, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",30,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 4, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",31,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 5, IBK::Unit("kJ"));
-
-	m_specCapacityCurve[IBK::Parameter("Temperature",-273.15,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 0, IBK::Unit("kJ"));
-	m_specCapacityCurve[IBK::Parameter("Temperature",100,IBK::Unit("C"))] = IBK::Parameter("Enthalpy", 4, IBK::Unit("kJ"));
-
-	std::vector<double> temp;
-	std::vector<double> ent;
-
-	for (auto &specObj : m_specCapacityCurve) {
-		if(temp.size()==0){
-			temp.push_back(specObj.first.get_value(IBK::Unit("K")));
-			ent.push_back(specObj.second.get_value(IBK::Unit("J")));
-		}
-		else {
-			bool isInsert = false;
-			for(size_t i=0; i< temp.size(); ++i){
-				double absTemp = specObj.first.get_value(IBK::Unit("K"));
-				if(absTemp<temp[i]){
-					temp.insert(temp.begin()+i, absTemp);
-					ent.insert(ent.begin()+i, specObj.second.get_value(IBK::Unit("J")));
-					isInsert = true;
-					break;
-				}
+	std::vector<double> uEnergy(temperature.size(),0);
+	//Calculate internal energy and populate energy vector
+	for(size_t i=0;i<temperature.size();++i){
+		if (i == 0)
+			uEnergy[i] = (rho*lambda*temperature[i]);
+		else{
+			if(temperature[i-1]>=temperature[i]){
+				QMessageBox::critical(this, tr("Input Values invalid."), QMessageBox::tr("Temperature values must be entered in ascending order."));
+				return;
 			}
-			if(!isInsert){
-				temp.push_back(specObj.first.get_value(IBK::Unit("K")));
-				ent.push_back(specObj.second.get_value(IBK::Unit("J")));
-			}
+			uEnergy[i] = rho* (temperature[i] - temperature[i-1]) * enthalpy[i]/1000 + uEnergy[i-1];
 		}
 	}
 
-	//read name of pcm
-	m_name = "SP26";
+	/*
+[THERMAL_STORAGE]
+  FUNCTION =              u(T)
+	  0                289.15           290.15           291.15           292.15           293.15           294.15           295.15           296.15           297.15           298.15           299.15           300.15           301.15           302.15           303.15           304.15           373.15
+	  0                1734900000       1739400000       1743900000       1749900000       1757400000       1766400000       1784400000       1817400000       1857900000       1932900000       1970400000       1980900000       1986900000       1992900000       1998900000       2006400000       2420400000
+*/
+	QStringList ss;
+	ss << "D6MARLZ! 006.001";
+	ss << "";
+	ss << "[IDENTIFICATION]";
+	ss << "NAME                     = EN: " + m_ui->lineEdit_Filename->text();
+	ss << "AQUISITION_ID            = -1";
+	ss << "PRODUCER                 = DE: ";
+	ss << "DATE                     = " + QDateTime::currentDateTime().date().toString("dd.MM.yyyy");
+	ss << "COLOUR                   = #ff409020";
+	ss << "CATEGORY                 = MISC";
+	ss << "";
+	ss << "";
+	ss << "[STORAGE_BASE_PARAMETERS]";
+	ss << "RHO                      = " + QString("%1").arg(m_ui->doubleSpinBox_Rho->value(),0,'f',2);
+	ss << "";
+	ss << "[TRANSPORT_BASE_PARAMETERS]";
+	ss << "LAMBDA                   = " + QString("%1").arg(m_ui->doubleSpinBox_Lambda->value(),0,'f',3);
+	ss << "";
+	ss << "[THERMAL_STORAGE]";
+	ss << "FUNCTION = u(T)";
 
-	//read parameters
-	m_para[P_Density] = IBK::Parameter("Density", 1500, IBK::Unit("kg/m3"));
-	m_para[P_Conductivity] = IBK::Parameter("Conductivity", 0.5, IBK::Unit("W/mK"));
+	QString sTemp, sU;
+	for(size_t i=0; i<temperature.size(); ++i){
+		sTemp += QString("%1").arg(temperature[i],0,'f', 1);
+		sU += QString("%1").arg(uEnergy[i],0,'f', 1);
+		if(i!=temperature.size()-1){
+			sTemp += "\t";
+			sU += "\t";
+		}
+	}
+	ss << sTemp;
+	ss << sU;
 
-	for (unsigned int i=1;i<temp.size();++i)
-		ent[i] = m_para[P_Density].get_value(IBK::Unit("kg/m3")) * (temp[i] - temp[i-1]) * ent[i] + ent[i-1];
+	QFile outFile(m_ui->lineEdit_M6Path->text() + m_ui->lineEdit_Filename->text() + ".m6");
+	outFile.open(QIODevice::WriteOnly);
+	outFile.write(ss.join("\n").toUtf8());
 
-	m_linSpl.setValues(temp, ent);
-
+	QMessageBox::information(this, tr("Finished."), QMessageBox::tr("Process finished."));
 }
 
 
-
-*/
-
-//void MainWindow::on_tableWidget_cellChanged(int row, int column)
-//{
-
-//   QTableWidgetItem *itemRow0 = m_ui->tableWidget->item(row, 0);
-//   QTableWidgetItem *itemRow1 = m_ui->tableWidget->item(row, 1);
-
-//   if ( !(!itemRow0 || itemRow0->text().isNull()) &&
-//         !(!itemRow1 || itemRow1->text().isNull())){
-//      m_ui->tableWidget->insertRow(row+1);
-//  // }
-//   //else return;
-//   //else m_ui->tableWidget->removeRow(row);
-
-//    //Wenn Zelleninhalt verändert
-//    //Ist Zelleninhalt leer? nichts passiert
-//    //wurde Zelle beschrieben, neue Zeile einfügen
-//}
-
 void MainWindow::on_pushButton_AddRow_clicked()
 {
-    m_ui->tableWidget->insertRow(m_ui->tableWidget->rowCount());
+
+	int rowCount = m_ui->tableWidget->rowCount();
+	m_ui->tableWidget->insertRow(rowCount);
+
+	QDoubleSpinBox* dblSpinTemp = new QDoubleSpinBox();
+	dblSpinTemp->setButtonSymbols(QAbstractSpinBox::ButtonSymbols::NoButtons);
+	dblSpinTemp->setMinimum(-273.15);
+	dblSpinTemp->setMaximum(200);
+	dblSpinTemp->setDecimals(1);
+
+	QDoubleSpinBox* dblSpinEnt = new QDoubleSpinBox();
+	dblSpinEnt->setButtonSymbols(QAbstractSpinBox::ButtonSymbols::NoButtons);
+	dblSpinEnt->setMinimum(0);
+	dblSpinEnt->setMaximum(2000);
+	dblSpinEnt->setDecimals(1);
+
+	m_ui->tableWidget->setCellWidget(rowCount,0,dblSpinTemp);
+	m_ui->tableWidget->setCellWidget(rowCount,1,dblSpinEnt);
+
+
+
 }
 
 void MainWindow::on_pushButton_DeleteRow_clicked()
 {
-    m_ui->tableWidget->removeRow(m_ui->tableWidget->rowCount()-1);
+	m_ui->tableWidget->removeRow(m_ui->tableWidget->rowCount()-1);
 }

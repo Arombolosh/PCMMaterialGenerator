@@ -10,14 +10,12 @@ include( ../../../externals/IBK/projects/Qt/IBK.pri )
 QT += xml core gui network printsupport widgets
 
 LIBS += -L../../../lib$${DIR_PREFIX} \
-        -lIBK \
-        -lMaterials
+		-lIBK
 
 
 INCLUDEPATH = \
 	../../src \
-        ../../../externals/IBK/src \
-        ../../../externals/Materials/src
+		../../../externals/IBK/src
 
 
 TRANSLATIONS += ../../resources/translations/PCMMaterialGenerator.ts
