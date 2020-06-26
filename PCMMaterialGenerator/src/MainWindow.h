@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <IBK_Path.h>
 
 namespace Ui {
 class MainWindow;

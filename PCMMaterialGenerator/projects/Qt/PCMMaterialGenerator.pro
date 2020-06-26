@@ -4,18 +4,11 @@
 TARGET = PCMMaterialGenerator
 TEMPLATE = app
 
-# this pri must be sourced from all our applications
-include( ../../../externals/IBK/projects/Qt/IBK.pri )
-
 QT += xml core gui network printsupport widgets
-
-LIBS += -L../../../lib$${DIR_PREFIX} \
-		-lIBK
 
 
 INCLUDEPATH = \
-	../../src \
-		../../../externals/IBK/src
+	../../src
 
 
 TRANSLATIONS += ../../resources/translations/PCMMaterialGenerator.ts
