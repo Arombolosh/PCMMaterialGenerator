@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
 	//Set Table Header
-	QStringList headerLabels{tr("Temperature ") + "[C]",tr("Enthalpy ") + "[kJ]"};
+	QStringList headerLabels{tr("Temperature ") + "[C]",tr("Enthalpy ") + "[kJ/kgK]"};
 	m_ui->tableWidget->setHorizontalHeaderLabels(headerLabels);
 	m_ui->tableWidget->horizontalHeader()->setSectionsClickable(false);
 	m_ui->tableWidget->insertRow(0);
@@ -95,7 +95,7 @@ void MainWindow::on_pushButton_Create_clicked()
 	for (size_t i=0; i<m_ui->tableWidget->rowCount();++i) {
 		//dynamic_cast testet ob das obj in das zielobj gewandelt werden kann.
 		temperature.push_back(static_cast<QDoubleSpinBox*>(m_ui->tableWidget->cellWidget(i,0))->value()+273.15);
-		enthalpy.push_back(static_cast<QDoubleSpinBox*>(m_ui->tableWidget->cellWidget(i,1))->value()+273.15);
+		enthalpy.push_back(static_cast<QDoubleSpinBox*>(m_ui->tableWidget->cellWidget(i,1))->value());
 	}
 
 	if(temperature.empty()){
