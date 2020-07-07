@@ -68,7 +68,7 @@
        <item row="2" column="1">
         <widget class="QDoubleSpinBox" name="doubleSpinBox_Lambda">
          <property name="minimum">
-          <double>0.500000000000000</double>
+          <double>0.050000000000000</double>
          </property>
          <property name="maximum">
           <double>1000.000000000000000</double>
@@ -87,6 +87,9 @@
        </item>
        <item row="3" column="1">
         <widget class="QDoubleSpinBox" name="doubleSpinBox_Rho">
+         <property name="minimum">
+          <double>1.000000000000000</double>
+         </property>
          <property name="maximum">
           <double>10000.000000000000000</double>
          </property>
