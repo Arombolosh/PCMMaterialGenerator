@@ -125,7 +125,7 @@ void MainWindow::on_pushButton_Create_clicked()
 				QMessageBox::critical(this, tr("Input Values invalid."), QMessageBox::tr("Temperature values must be entered in ascending order."));
 				return;
 			}
-			uEnergy[i] = rho* (temperature[i] - temperature[i-1]) * enthalpy[i]/1000 + uEnergy[i-1];
+			uEnergy[i] = rho* (temperature[i] - temperature[i-1]) * enthalpy[i]*1000 + uEnergy[i-1];
 		}
 	}
 
