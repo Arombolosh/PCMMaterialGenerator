@@ -141,7 +141,7 @@ void MainWindow::on_pushButton_Create_clicked()
 	ss << "[IDENTIFICATION]";
 	ss << "NAME                     = EN: " + m_ui->lineEdit_Filename->text();
 	ss << "AQUISITION_ID            = -1";
-	ss << "PRODUCER                 = DE: ";
+    ss << "PRODUCER                 = DE: " + m_ui->lineEdit_Producer->text();
 	ss << "DATE                     = " + QDateTime::currentDateTime().date().toString("dd.MM.yyyy");
 	ss << "COLOUR                   = #ff409020";
 	ss << "CATEGORY                 = MISC";
