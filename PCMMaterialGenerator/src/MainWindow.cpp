@@ -148,10 +148,10 @@ void MainWindow::on_pushButton_Create_clicked()
 	ss << "";
 	ss << "";
 	ss << "[STORAGE_BASE_PARAMETERS]";
-	ss << "RHO                      = " + QString("%1").arg(m_ui->doubleSpinBox_Rho->value(),0,'f',2);
+    ss << "RHO                      = " + QString("%1").arg(m_ui->doubleSpinBox_Rho->value(),0,'f',2) + " kg/m3";
 	ss << "";
 	ss << "[TRANSPORT_BASE_PARAMETERS]";
-	ss << "LAMBDA                   = " + QString("%1").arg(m_ui->doubleSpinBox_Lambda->value(),0,'f',3);
+    ss << "LAMBDA                   = " + QString("%1").arg(m_ui->doubleSpinBox_Lambda->value(),0,'f',3) + " W/mK";
 	ss << "";
 	ss << "[THERMAL_STORAGE]";
 	ss << "FUNCTION = u(T)";
@@ -167,6 +167,7 @@ void MainWindow::on_pushButton_Create_clicked()
 	}
 	ss << sTemp;
 	ss << sU;
+    ss << "";
 
 	QFile outFile(m_ui->lineEdit_M6Path->text() + m_ui->lineEdit_Filename->text() + ".m6");
 	outFile.open(QIODevice::WriteOnly);
